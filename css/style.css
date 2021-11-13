@@ -1,0 +1,122 @@
+body {
+	background-color: #3d4fff;
+}
+
+div.songs{
+        text-align:center;
+        display: block;
+        
+}
+
+td.thmbnail{
+	width: 6%;
+	height: auto;
+}
+
+img{
+	width: 100%;
+}
+
+div.middlespacer{
+	margin-bottom: 50px;
+}
+
+div.button{
+	text-align: center;
+	padding-bottom: 5%;
+	padding-top: 5%;
+	font-size: 1.2em;
+	font-family: Helvetica;
+	cursor: pointer;
+	margin: 0;
+	border-bottom: 1px solid #474a52;
+}
+
+div.button:hover{
+	background-color: #3b3e44;
+}
+
+div.button:active{
+	background-color: #464a52;
+}
+
+div.songcontainer{
+	text-align:left;
+	display: inline-block;
+	background-color: #202020;
+	padding:  20px;
+	width: 80%;
+	vertical-align: center;
+	table-layout: fixed;
+}
+
+table.songcontainer{
+	text-align:left;
+	display: inline-block;
+	background-color: #202020;
+	padding:  20px;
+	width: 80%;
+	vertical-align: center;
+	table-layout: fixed;
+}
+
+table.songcontainer td{
+	vertical-align: middle;
+	
+}
+table.songcontainer:hover{
+	background-color: #3b3e44;
+}
+
+table.songcontainer:active{
+	background-color: #464a52;
+}
+
+
+div.hamburger div{
+	width: 35px;
+	height: 5px;
+	background-color: white;
+	margin: 6px 0;
+}
+
+td.center{
+    padding: 10px;
+    display: table-cell;
+    text-align: center;
+    vertical-align: middle;
+    width: 5%;
+}
+
+
+table.ui{
+	border-spacing:0;
+	table-layout: fixed;
+	position: absolute;
+	left: 0px;
+	right: 0px;
+	bottom: 0px;
+	top: 0px;
+	height: 100%;
+	width: 100%;
+	color: #ffffff;
+}
+
+
+td{
+	vertical-align: top;
+  	text-align: left;
+}
+
+td.songname{
+	text-align: left;
+}
+td.middle{
+	background-color: #181818;
+	width: 80%;
+}
+td.side{
+	background-color: #202020;
+	width: 10%;
+}
+

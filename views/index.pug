@@ -1,0 +1,24 @@
+doctype html
+html(lang="en" translate="no")
+	head
+		title #{title}
+		link(rel='stylesheet', href='/css/style.css')
+		meta(name='viewport', content="width=device-width, initial-scale=1")
+	body
+		block content
+			table.ui
+				tr
+					td.side
+						div.button refresh queue
+					td.middle
+						div.middlespacer
+						div.songs
+							div.centrewrapper
+					td.side
+			
+			
+		block scripts
+			script(src='https://code.jquery.com/jquery-1.9.1.min.js')
+			script(src='scripts/index.js')
+		
+
