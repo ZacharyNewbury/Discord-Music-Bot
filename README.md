@@ -8,7 +8,8 @@ Has capability to play music during voice chat, including a web interface with p
 * npm
 
 > you can install the required node modules by changing directory to the servers and installing with:
->> **npm install**
+
+`npm install`
 
 # Setup
 
@@ -46,7 +47,7 @@ Once the bot is invited to the server you now just need to have the server runni
 First you need to clone the repository to the server you are using to run the bot.
 Once you have and extracted the folder contents, you can run npm to install dependencies
 
-> **npm install**
+`npm install`
 
 After that you need to setup the config file, there are three things to change:
 * prefix - you can set this to whatever symbol you want, i have it setup as ! for commands i.e. !play
@@ -59,15 +60,16 @@ The file is setup for https encryption. You can generate your own encryption usi
 
 You just need to update the following lines to instead point to your proper files after generating them.
 
+```
 const privateKey = fs.readFileSync('/absolute/to/your/privateKey', 'utf8');
 const certificate = fs.readFileSync('/absolute/to/your/cert', 'utf8');
 const ca = fs.readFileSync('/absolute/to/your/centralauthority', 'utf8');
+```
 
 Now you should be able to run your bot server by using either of:
 
-> **sudo node server.js**
-
-> **sudo nodemon server.js**
+`sudo node server.js`
+`sudo nodemon server.js`
 
 
 
