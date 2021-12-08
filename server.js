@@ -1,5 +1,6 @@
 //---setup variables---
-const { Client, Collection, Intents } = require('discord.js');
+const { Client, Collection, Intents, MessageEmbed} = require('discord.js');
+const Discord = require('discord.js');
 const { prefix, clientId, token } = require("./config.json");
 const ytdl = require("ytdl-core");
 const ytpl = require("ytpl")
@@ -9,7 +10,9 @@ const app = express();
 const queue = new Map();
 const http = require('http');
 const https = require('https');
+const mariadb = require('mariadb');
 var attempts = 0;
+const slashRenew = false; //used if slash commands need to be updated
 const deployCommands = require('./deploy-commands.js')
 
 
@@ -22,7 +25,16 @@ const client = new Client({
 
 client.once("ready", () => {
 	console.log("Ready!");
+	//register slash commands for each server
+	if(slashRenew){
+		var iterator = client.guilds.cache.keys();
+		for(const guildId of iterator){
+			deployCommands(token, clientId, guildId);
+		}
+	}
 });
+
+
 
 client.once("reconnecting", () => {
 	console.log("Reconnecting!");
@@ -87,7 +99,9 @@ async function help(message){
 
 async function shuffle(message, serverQueue){
 	//songs is an array
-	serverQueue.songs.sort(() => Math.random() - 0.5);
+	var playing = serverQueue.songs.shift();					//playing
+	serverQueue.songs.sort(() => Math.random() - 0.5);//shuffle
+	serverQueue.songs.unshift(playing);								//add back to queue
 	message.channel.send(`queue has been shuffled`);
 }
 
@@ -129,7 +143,8 @@ async function execute(message, serverQueue) {
 			const playlist = await ytpl(id);
 			playlistTitle = playlist.title;
 			playlistLength = playlist.items.length;
-
+			
+			
 			console.log(`title: ${playlistTitle},\nSongs:${playlistLength}`)
 			for(var item=0; item<playlist.items.length; item++){
 				
@@ -137,9 +152,12 @@ async function execute(message, serverQueue) {
 				var song = {
 					title: playlist.items[item].title,
 					url: playlist.items[item].shortUrl,
-					thumbnail: playlist.items[item].bestThumbnail
+					thumbnail: playlist.items[item].bestThumbnail.url,
+					videolength: playlist.items[item].durationSec,
+					author: playlist.items[item].author
 				};
 				
+
 				
 				songs.push(song);
 			}
@@ -153,10 +171,20 @@ async function execute(message, serverQueue) {
 	}
 	else{
 		const songInfo = await ytdl.getInfo(url);
+		//look for this and remove the rest including this
+		
+		const thumburl = songInfo.videoDetails.thumbnails[0].url.split('/');
+		
 		const song = {
 			title: songInfo.videoDetails.title,
 			url: songInfo.videoDetails.video_url,
+			thumbnail:'https://i.ytimg.com/vi/'+thumburl[4]+'/maxresdefault.jpg',
+			videolength:songInfo.videoDetails.lengthSeconds,
+			author: songInfo.videoDetails.author
 		};	
+
+
+
 		songs.push(song);
 	}
 
@@ -198,7 +226,7 @@ async function execute(message, serverQueue) {
 			serverQueue.songs.push(songs[i]);	
 		}
 		if(isPlaylist){
-			console.log(serverQueue.songs.length);
+
 			return message.channel.send(`Playlist Added to the Queue!\nPlaylist:**${playlistTitle}**\nSongs:**${playlistLength}**`);
 		}
 		else
@@ -229,7 +257,7 @@ function clear(message, serverQueue){
 
 	if (!serverQueue)
 		return message.channel.send("No songs added yet to clear!");
-	serverQueue.songs = [];
+	serverQueue.songs = [serverQueue.songs[0]];
 	if(!message.pogger){
 		return message.channel.send("Songs Queue Emptied.");	
 	}
@@ -239,6 +267,7 @@ function clear(message, serverQueue){
 function stop(message, serverQueue) {
 	message.pogger = true;
 	clear(message, serverQueue);
+	skip(message, serverQueue);
 	serverQueue.voiceChannel.leave();
 }
 
@@ -251,7 +280,7 @@ function play(guild, song) {
 	}
 
 	const dispatcher = serverQueue.connection
-	.play(ytdl(song.url, {filter: 'audioonly'}, {quality: 'lowestaudio'}))
+	.play(ytdl(song.url, {filter: 'audioonly'}, {quality: 'highestaudio', highWaterMark: 1 << 25}))
 	.on("finish", () => {
 		attempts = 0;
 		serverQueue.songs.shift();
@@ -259,37 +288,53 @@ function play(guild, song) {
 	})
 	.on("error", error => {
 		attempts++;
-		console.error("video downlaod error:\n"+error);
-		if(attempts < 3){
-			console.error("trying to download again.");
-			play(guild, serverQueue.songs[0]);
+		console.error("playback error :: "+error.message);
+		if(!error.message.includes("aborted")){
+			if(attempts < 3){
+				console.error("trying to download again.");
+				play(guild, serverQueue.songs[0]);
+			}
+			else{
+				console.error("to many attempts, moving to next song");
+				attempts = 0;
+				serverQueue.songs.shift();
+				play(guild, serverQueue.songs[0]);
+				return serverQueue.textchannel.send("\`couldnt play song, skiped to next song\`");
+			}
 		}
 		else{
-			console.error("to many attempts, moving to next song");
-			attempts = 0;
 			serverQueue.songs.shift();
-			play(guild, serverQueue.songs[0]);
-			return message.channel.send("\`couldnt play song, skiped to next song\`");
 		}
+		
 	});
 	dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-	serverQueue.textChannel.send(`Now Playing: **${song.title}**`);
+	
+	var time  = new Date(song.videolength * 1000).toISOString().substr(11, 8);
+
+	//discord embed message
+	var embed = new MessageEmbed()
+  .setColor(0x3498DB)
+  .setAuthor(song.author.name, "")
+  .setTitle(song.title)
+  .setURL(song.url)
+  .setThumbnail(song.thumbnail)
+  .addField("Duration", time);
+
+  serverQueue.textChannel.send({ embed: embed });
+	
 }
 
 client.login(token);
 
 
-//--web interface section--
 
-
-// Certificate for https server
-const privateKey = fs.readFileSync('/absolute/to/your/privateKey', 'utf8');
-const certificate = fs.readFileSync('/absolute/to/your/cert', 'utf8');
-const ca = fs.readFileSync('/absolute/to/your/centralauthority', 'utf8');
+// Certificate
+const privateKey = fs.readFileSync('/etc/letsencrypt/live/buddybot.ca/privkey.pem', 'utf8');
+const certificate = fs.readFileSync('/etc/letsencrypt/live/buddybot.ca/cert.pem', 'utf8');
+const ca = fs.readFileSync('/etc/letsencrypt/live/buddybot.ca/chain.pem', 'utf8');
 const options ={key:privateKey,cert:certificate};
 
-
-app.use(express.static("/absolute/to/your/serverlocation", { dotfiles: 'allow' }));
+app.use(express.static("/home/zack/discord-musicbot", { dotfiles: 'allow' }));
 
 const httpServer = http.createServer(app);
 const httpsServer = https.createServer(options, app);
